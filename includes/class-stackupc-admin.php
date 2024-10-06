@@ -35,6 +35,10 @@ class StackUpc_Admin {
         add_action( 'wp_ajax_stackupc_search', array($this, 'ajax_upc_search' ) );
         add_action( 'admin_enqueue_scripts', array($this, 'enqueue_admin_scripts' ) );
         add_action( 'wp_ajax_stackupc_import', array($this, 'ajax_import_item' ) );
+        add_filter( 'manage_asset_posts_columns', array($this, 'set_custom_asset_columns' ) );
+        add_action( 'manage_asset_posts_custom_column', array($this, 'custom_asset_column' ), 10, 2);
+        add_filter( 'manage_edit-asset_sortable_columns', array($this, 'set_custom_asset_sortable_columns' ) );
+        add_action( 'admin_head-edit.php', array($this, 'add_admin_styles' ) );
     }
 
     /**
@@ -406,5 +410,85 @@ class StackUpc_Admin {
             'attachment_id' => $attachment_id,
             'url' => wp_get_attachment_url($attachment_id)
         );
+    }
+
+    public function set_custom_asset_columns($columns) {
+        $new_columns = array(
+            'cb' => $columns['cb'],
+            'image' => __('Image', 'stackupc'),
+            'title' => __('Title', 'stackupc'),
+            'categories' => __('Categories', 'stackupc'),
+            'tags' => __('Tags', 'stackupc'),
+            'date' => __('Date', 'stackupc')
+        );
+        return $new_columns;
+    }
+
+    public function custom_asset_column($column, $post_id) {
+        switch ($column) {
+            case 'image':
+                $image = get_field('images', $post_id);
+                if ($image) {
+                    $full_size_url = $image['url']; // URL of the full-size image
+                    $medium_size_url = $image['sizes']['medium']; // URL of the medium size image
+                    echo '<a href="' . esc_url($full_size_url) . '" target="_blank" rel="noopener noreferrer">';
+                    echo '<img src="' . esc_url($medium_size_url) . '" alt="' . esc_attr($image['alt']) . '" />';
+                    echo '</a>';
+                } else {
+                    echo '—';
+                }
+                break;
+            case 'categories':
+                $terms = get_the_terms($post_id, 'category');
+                if ($terms && !is_wp_error($terms)) {
+                    $category_names = array();
+                    foreach ($terms as $term) {
+                        $category_names[] = $term->name;
+                    }
+                    echo implode(', ', $category_names);
+                } else {
+                    echo '—';
+                }
+                break;
+            case 'tags':
+                $terms = get_the_terms($post_id, 'post_tag');
+                if ($terms && !is_wp_error($terms)) {
+                    $tag_names = array();
+                    foreach ($terms as $term) {
+                        $tag_names[] = $term->name;
+                    }
+                    echo implode(', ', $tag_names);
+                } else {
+                    echo '—';
+                }
+                break;
+        }
+    }
+
+    public function set_custom_asset_sortable_columns($columns) {
+        $columns['categories'] = 'categories';
+        $columns['tags'] = 'tags';
+        return $columns;
+    }
+
+    public function add_admin_styles() {
+        echo '<style>
+            .column-image { width: 102px; padding: 8px 10px; }
+            .column-image img { 
+                display: block; 
+                width: 100px; 
+                height: 100px; 
+                object-fit: cover;
+                transition: opacity 0.3s ease;
+                border: 1px solid rgba(0, 0, 0, 0.1); /* Light black border */
+                box-sizing: border-box; /* Ensures border doesn\'t increase image size */
+            }
+            .column-image a:hover img { 
+                opacity: 0.8; 
+            }
+            .column-title { width: auto; }
+            .column-categories, .column-tags { width: 15%; }
+            .column-date { width: 10%; }
+        </style>';
     }
 }
