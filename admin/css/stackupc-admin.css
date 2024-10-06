@@ -2,3 +2,84 @@
  * All of the CSS for your admin-specific functionality should be
  * included in this file.
  */
+
+.stackupc-results-wrap {
+    margin-top: 20px;
+    background: #fff;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.stackupc-results-wrap h2 {
+    margin-top: 0;
+    color: #23282d;
+}
+
+.stackupc-results-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.stackupc-results-table th,
+.stackupc-results-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.stackupc-results-table th {
+    background-color: #f1f1f1;
+    font-weight: 600;
+    color: #23282d;
+    text-transform: uppercase;
+    font-size: 0.9em;
+}
+
+.stackupc-results-table tr:hover {
+    background-color: #f9f9f9;
+}
+
+.stackupc-results-table td {
+    color: #444;
+}
+
+.stackupc-results-table .stackupc-thumbnail {
+    width: 60px;
+    text-align: center;
+}
+
+.stackupc-results-table .stackupc-thumbnail img {
+    max-width: 50px;
+    max-height: 50px;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
+.stackupc-results-table .stackupc-thumbnail .no-image {
+    display: inline-block;
+    width: 50px;
+    height: 50px;
+    line-height: 50px;
+    background-color: #f1f1f1;
+    color: #888;
+    font-size: 10px;
+    text-align: center;
+    border-radius: 4px;
+}
+
+/* Adjust other column widths if needed */
+.stackupc-results-table th:nth-child(2),
+.stackupc-results-table td:nth-child(2) {
+    width: 40%;
+}
+
+.stackupc-results-table th:nth-child(3),
+.stackupc-results-table td:nth-child(3),
+.stackupc-results-table th:nth-child(4),
+.stackupc-results-table td:nth-child(4),
+.stackupc-results-table th:nth-child(5),
+.stackupc-results-table td:nth-child(5) {
+    width: 20%;
+}

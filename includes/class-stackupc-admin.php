@@ -18,15 +18,19 @@ require_once plugin_dir_path( dirname( __FILE__ ) ) . 'tools/class-stackupc-logg
 
 class StackUpc_Admin {
 
+    private $version;
+
     /**
      * Initialize the class and set its properties.
      *
      * @since 1.0.0
      */
     public function __construct() {
+        $this->version = STACKUPC_VERSION; // Make sure this constant is defined in your main plugin file
         add_action( 'admin_menu', array( $this, 'add_admin_menu' ) );
         add_action( 'admin_init', array( $this, 'register_settings' ) );
         add_action( 'admin_init', array( $this, 'handle_upc_search' ) );
+        add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_styles' ) );
     }
 
     /**
@@ -122,6 +126,12 @@ class StackUpc_Admin {
             </table>
         </form>
         <?php
+        // Display the result table if it exists
+        $table_html = get_transient('stackupc_result_table');
+        if ($table_html) {
+            echo $table_html;
+            delete_transient('stackupc_result_table');
+        }
     }
 
     /**
@@ -172,8 +182,6 @@ class StackUpc_Admin {
     }
 
     private function display_upc_result($result) {
-        // Process and display the result
-        // This is a placeholder implementation. You should customize this based on your needs.
         $items = isset($result['items']) ? $result['items'] : array();
         
         if (empty($items)) {
@@ -181,14 +189,62 @@ class StackUpc_Admin {
             return;
         }
 
-        $item = $items[0]; // Get the first item
-        $message = sprintf(
-            __('Found: %s (EAN: %s) - %s', 'stackupc'),
-            esc_html($item['title']),
-            esc_html($item['ean']),
-            esc_html($item['description'])
-        );
-
-        add_settings_error('stackupc_messages', 'stackupc_success', $message, 'updated');
+        ob_start();
+        ?>
+        <div class="stackupc-results-wrap">
+            <h2><?php _e('UPC Search Results', 'stackupc'); ?></h2>
+            <table class="stackupc-results-table">
+                <thead>
+                    <tr>
+                        <th><?php _e('Image', 'stackupc'); ?></th>
+                        <th><?php _e('Title', 'stackupc'); ?></th>
+                        <th><?php _e('Brand', 'stackupc'); ?></th>
+                        <th><?php _e('UPC', 'stackupc'); ?></th>
+                        <th><?php _e('Price', 'stackupc'); ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($items as $item): ?>
+                    <tr>
+                        <td class="stackupc-thumbnail">
+                            <?php
+                            $image_url = !empty($item['images']) ? esc_url($item['images'][0]) : '';
+                            if ($image_url) {
+                                echo '<img src="' . $image_url . '" alt="' . esc_attr($item['title']) . '" />';
+                            } else {
+                                echo '<span class="no-image">'. __('No image', 'stackupc') .'</span>';
+                            }
+                            ?>
+                        </td>
+                        <td><?php echo esc_html($item['title']); ?></td>
+                        <td><?php echo esc_html($item['brand']); ?></td>
+                        <td><?php echo esc_html($item['upc']); ?></td>
+                        <td>
+                            <?php 
+                            if (!empty($item['offers'])) {
+                                echo '$' . number_format($item['offers'][0]['price'], 2);
+                            } else {
+                                _e('N/A', 'stackupc');
+                            }
+                            ?>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+        <?php
+        $table_html = ob_get_clean();
+        
+        // Store the table HTML in a transient
+        set_transient('stackupc_result_table', $table_html, 5 * MINUTE_IN_SECONDS);
+    }
+    
+    public function enqueue_admin_styles($hook) {
+        // Only enqueue on our plugin's admin page
+        if ($hook != 'toplevel_page_stackupc') {
+            return;
+        }
+        wp_enqueue_style('stackupc-admin-styles', plugin_dir_url(dirname(__FILE__)) . 'admin/css/stackupc-admin.css', array(), $this->version);
     }
 }
