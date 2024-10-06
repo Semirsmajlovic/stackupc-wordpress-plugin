@@ -31,7 +31,9 @@ class StackUpc_Admin {
         add_action( 'admin_init', array( $this, 'register_settings' ) );
         add_action( 'admin_init', array( $this, 'handle_upc_search' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_styles' ) );
-        add_action( 'admin_init', array($this, 'handle_import'));
+        add_action( 'admin_init', array($this, 'handle_import' ) );
+        add_action( 'wp_ajax_stackupc_search', array($this, 'ajax_upc_search' ) );
+        add_action( 'admin_enqueue_scripts', array($this, 'enqueue_admin_scripts' ) );
     }
 
     /**
@@ -274,5 +276,47 @@ class StackUpc_Admin {
                 add_settings_error('stackupc_messages', 'stackupc_import_error', __('Failed to import item. Please try again.', 'stackupc'), 'error');
             }
         }
+    }
+
+    public function enqueue_admin_scripts($hook) {
+        if ($hook != 'toplevel_page_stackupc') {
+            return;
+        }
+        wp_enqueue_script('stackupc-admin-js', plugin_dir_url(dirname(__FILE__)) . 'admin/js/stackupc-admin.js', array('jquery'), $this->version, true);
+        wp_localize_script('stackupc-admin-js', 'stackupc_ajax', array(
+            'ajax_url' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('stackupc_search_nonce')
+        ));
+    }
+
+    public function ajax_upc_search() {
+        check_ajax_referer('stackupc_search_nonce', 'nonce');
+
+        if (!isset($_POST['upc_code'])) {
+            wp_send_json_error('No UPC code provided');
+        }
+
+        $upc_code = sanitize_text_field($_POST['upc_code']);
+        
+        try {
+            $api = new StackUPC_API();
+            $result = $api->search_upc($upc_code);
+
+            if (is_wp_error($result)) {
+                throw new Exception($result->get_error_message());
+            }
+
+            $html = $this->generate_result_html($result);
+            wp_send_json_success($html);
+        } catch (Exception $e) {
+            StackUPC_Logger::log("UPC search failed: " . $e->getMessage(), 'error');
+            wp_send_json_error($e->getMessage());
+        }
+    }
+
+    private function generate_result_html($result) {
+        ob_start();
+        $this->display_upc_result($result);
+        return ob_get_clean();
     }
 }

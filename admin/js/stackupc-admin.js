@@ -1,32 +1,40 @@
-(function( $ ) {
+(function($) {
 	'use strict';
 
-	/**
-	 * All of the code for your admin-facing JavaScript source
-	 * should reside in this file.
-	 *
-	 * Note: It has been assumed you will write jQuery code here, so the
-	 * $ function reference has been prepared for usage within the scope
-	 * of this function.
-	 *
-	 * This enables you to define handlers, for when the DOM is ready:
-	 *
-	 * $(function() {
-	 *
-	 * });
-	 *
-	 * When the window is loaded:
-	 *
-	 * $( window ).load(function() {
-	 *
-	 * });
-	 *
-	 * ...and/or other possibilities.
-	 *
-	 * Ideally, it is not considered best practise to attach more than a
-	 * single DOM-ready or window-load handler for a particular page.
-	 * Although scripts in the WordPress core, Plugins and Themes may be
-	 * practising this, we should strive to set a better example in our own work.
-	 */
+	$(function() {
+		$('#stackupc_search_button').on('click', function() {
+			var upcCode = $('#stackupc_upc_code').val();
+			if (!upcCode) {
+				alert('Please enter a UPC code');
+				return;
+			}
 
-})( jQuery );
+			$.ajax({
+				url: stackupc_ajax.ajax_url,
+				type: 'POST',
+				data: {
+					action: 'stackupc_search',
+					nonce: stackupc_ajax.nonce,
+					upc_code: upcCode
+				},
+				beforeSend: function() {
+					$('#stackupc_search_button').prop('disabled', true).text('Searching...');
+				},
+				success: function(response) {
+					if (response.success) {
+						$('#stackupc_results_container').html(response.data);
+					} else {
+						alert('Error: ' + response.data);
+					}
+				},
+				error: function() {
+					alert('An error occurred. Please try again.');
+				},
+				complete: function() {
+					$('#stackupc_search_button').prop('disabled', false).text('Search');
+				}
+			});
+		});
+	});
+
+})(jQuery);
