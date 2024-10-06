@@ -74,6 +74,7 @@ class StackUPC {
 	 */
 	public function includes() {
 		require_once STACKUPC_PLUGIN_DIR . 'includes/class-stackupc-admin.php';
+		require_once STACKUPC_PLUGIN_DIR . 'tools/class-stackupc-logger.php';
 	}
 
 	/**

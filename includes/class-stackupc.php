@@ -74,11 +74,15 @@ class Stackupc {
 		}
 		$this->plugin_name = 'stackupc';
 
-		$this->load_dependencies();
-		$this->set_locale();
-		$this->define_admin_hooks();
-		$this->define_public_hooks();
-
+		try {
+			$this->load_dependencies();
+			$this->set_locale();
+			$this->define_admin_hooks();
+			$this->define_public_hooks();
+			StackUPC_Logger::log( 'StackUPC plugin initialized successfully.', 'info' );
+		} catch ( Exception $e ) {
+			StackUPC_Logger::log( 'Error initializing StackUPC plugin: ' . $e->getMessage(), 'error' );
+		}
 	}
 
 	/**
