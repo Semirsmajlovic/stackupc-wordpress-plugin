@@ -31,6 +31,7 @@ class StackUpc_Admin {
         add_action( 'admin_init', array( $this, 'register_settings' ) );
         add_action( 'admin_init', array( $this, 'handle_upc_search' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_styles' ) );
+        add_action( 'admin_init', array($this, 'handle_import'));
     }
 
     /**
@@ -201,10 +202,11 @@ class StackUpc_Admin {
                         <th><?php _e('Brand', 'stackupc'); ?></th>
                         <th><?php _e('UPC', 'stackupc'); ?></th>
                         <th><?php _e('Price', 'stackupc'); ?></th>
+                        <th><?php _e('Import', 'stackupc'); ?></th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($items as $item): ?>
+                    <?php foreach ($items as $index => $item): ?>
                     <tr>
                         <td class="stackupc-thumbnail">
                             <?php
@@ -228,6 +230,13 @@ class StackUpc_Admin {
                             }
                             ?>
                         </td>
+                        <td class="stackupc-import-column">
+                            <form method="post" action="">
+                                <?php wp_nonce_field('stackupc_import_action', 'stackupc_import_nonce'); ?>
+                                <input type="hidden" name="stackupc_import_item" value="<?php echo esc_attr($index); ?>">
+                                <?php submit_button(__('Import', 'stackupc'), 'secondary', 'submit', false); ?>
+                            </form>
+                        </td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>
@@ -246,5 +255,24 @@ class StackUpc_Admin {
             return;
         }
         wp_enqueue_style('stackupc-admin-styles', plugin_dir_url(dirname(__FILE__)) . 'admin/css/stackupc-admin.css', array(), $this->version);
+    }
+
+    public function handle_import() {
+        if (isset($_POST['stackupc_import_item']) && isset($_POST['stackupc_import_nonce']) && wp_verify_nonce($_POST['stackupc_import_nonce'], 'stackupc_import_action')) {
+            $item_index = intval($_POST['stackupc_import_item']);
+            $result = get_transient('stackupc_api_result');
+            
+            if ($result && isset($result['items'][$item_index])) {
+                $item = $result['items'][$item_index];
+                // Process the import here
+                // For example, you might create a new post or update an existing one
+                // with the item data
+                
+                // Placeholder success message
+                add_settings_error('stackupc_messages', 'stackupc_import_success', __('Item imported successfully.', 'stackupc'), 'updated');
+            } else {
+                add_settings_error('stackupc_messages', 'stackupc_import_error', __('Failed to import item. Please try again.', 'stackupc'), 'error');
+            }
+        }
     }
 }
