@@ -56,7 +56,7 @@ class StackUpc_Admin {
      * @since 1.0.0
      */
     public function register_settings() {
-        register_setting( 'stackupc_general_settings', 'stackupc_upc_code' );
+        register_setting( 'stackupc_upclookup_settings', 'stackupc_upc_code' );
         register_setting( 'stackupc_advanced_settings', 'stackupc_cache_duration' );
     }
 
@@ -72,18 +72,18 @@ class StackUpc_Admin {
         }
 
         try {
-            $active_tab = isset( $_GET['tab'] ) ? sanitize_text_field( $_GET['tab'] ) : 'general';
+            $active_tab = isset( $_GET['tab'] ) ? sanitize_text_field( $_GET['tab'] ) : 'upclookup';
             ?>
             <div class="wrap">
                 <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
                 <?php settings_errors( 'stackupc_messages' ); ?>
                 <h2 class="nav-tab-wrapper">
-                    <a href="?page=stackupc&tab=general" class="nav-tab <?php echo $active_tab === 'general' ? 'nav-tab-active' : ''; ?>"><?php _e( 'General Settings', 'stackupc' ); ?></a>
-                    <a href="?page=stackupc&tab=advanced" class="nav-tab <?php echo $active_tab === 'advanced' ? 'nav-tab-active' : ''; ?>"><?php _e( 'Advanced Settings', 'stackupc' ); ?></a>
+                    <a href="?page=stackupc&tab=upclookup" class="nav-tab <?php echo $active_tab === 'upclookup' ? 'nav-tab-active' : ''; ?>"><?php _e( 'UPC Lookup', 'stackupc' ); ?></a>
+                    <a href="?page=stackupc&tab=advanced" class="nav-tab <?php echo $active_tab === 'advanced' ? 'nav-tab-active' : ''; ?>"><?php _e( 'UPC Search', 'stackupc' ); ?></a>
                 </h2>
                 <?php
-                if ( $active_tab === 'general' ) {
-                    $this->render_general_settings();
+                if ( $active_tab === 'upclookup' ) {
+                    $this->render_upclookup_settings();
                 } else {
                     ?>
                     <form method="post" action="options.php">
@@ -106,11 +106,11 @@ class StackUpc_Admin {
     }
 
     /**
-     * Render general settings fields.
+     * Render upclookup settings fields.
      *
      * @since 1.0.0
      */
-    private function render_general_settings() {
+    private function render_upclookup_settings() {
         ?>
         <form method="post" action="">
             <?php wp_nonce_field( 'stackupc_search_action', 'stackupc_search_nonce' ); ?>
