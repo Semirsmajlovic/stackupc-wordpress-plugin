@@ -126,6 +126,10 @@ class Stackupc {
 		 */
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'public/class-stackupc-public.php';
 
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-stackupc-api.php'; // Add this line
+
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'tools/class-stackupc-logger.php'; // Add this line for the logger
+
 		$this->loader = new Stackupc_Loader();
 
 	}

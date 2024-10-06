@@ -13,7 +13,10 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class StackUPC_Admin {
+require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-stackupc-api.php';
+require_once plugin_dir_path( dirname( __FILE__ ) ) . 'tools/class-stackupc-logger.php';
+
+class StackUpc_Admin {
 
     /**
      * Initialize the class and set its properties.
@@ -146,15 +149,46 @@ class StackUPC_Admin {
      * @since 1.0.0
      */
     public function handle_upc_search() {
-        if ( isset( $_POST['stackupc_upc_code'] ) && isset( $_POST['stackupc_search_nonce'] ) && wp_verify_nonce( $_POST['stackupc_search_nonce'], 'stackupc_search_action' ) ) {
-            $upc_code = sanitize_text_field( $_POST['stackupc_upc_code'] );
-            update_option( 'stackupc_upc_code', $upc_code );
-            
-            // Perform the search action here
-            // For example, you might call an API or search a database
-            
-            // Add a success message
-            add_settings_error( 'stackupc_messages', 'stackupc_message', __( 'UPC Code search completed.', 'stackupc' ), 'updated' );
+        if (isset($_POST['stackupc_upc_code']) && isset($_POST['stackupc_search_nonce']) && wp_verify_nonce($_POST['stackupc_search_nonce'], 'stackupc_search_action')) {
+            $upc_code = sanitize_text_field($_POST['stackupc_upc_code']);
+            update_option('stackupc_upc_code', $upc_code);
+
+            try {
+                $api = new \StackUPC_API(); // Use the fully qualified class name
+                $result = $api->search_upc($upc_code);
+
+                if (is_wp_error($result)) {
+                    throw new \Exception($result->get_error_message());
+                }
+
+                // Process and display the result
+                $this->display_upc_result($result);
+                \StackUPC_Logger::log("UPC search completed for code: $upc_code", 'info');
+            } catch (\Exception $e) {
+                \StackUPC_Logger::log("UPC search failed: " . $e->getMessage(), 'error');
+                add_settings_error('stackupc_messages', 'stackupc_error', __('UPC Code search failed: ', 'stackupc') . $e->getMessage(), 'error');
+            }
         }
+    }
+
+    private function display_upc_result($result) {
+        // Process and display the result
+        // This is a placeholder implementation. You should customize this based on your needs.
+        $items = isset($result['items']) ? $result['items'] : array();
+        
+        if (empty($items)) {
+            add_settings_error('stackupc_messages', 'stackupc_notice', __('No results found for this UPC code.', 'stackupc'), 'warning');
+            return;
+        }
+
+        $item = $items[0]; // Get the first item
+        $message = sprintf(
+            __('Found: %s (EAN: %s) - %s', 'stackupc'),
+            esc_html($item['title']),
+            esc_html($item['ean']),
+            esc_html($item['description'])
+        );
+
+        add_settings_error('stackupc_messages', 'stackupc_success', $message, 'updated');
     }
 }
