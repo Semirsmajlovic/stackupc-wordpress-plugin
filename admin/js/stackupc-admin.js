@@ -35,6 +35,38 @@
 				}
 			});
 		});
+
+		$(document).on('click', '.stackupc-import-button', function(e) {
+			e.preventDefault();
+			var $button = $(this);
+			var itemData = $button.data('item');
+
+			$.ajax({
+				url: stackupc_ajax.ajax_url,
+				type: 'POST',
+				data: {
+					action: 'stackupc_import',
+					nonce: stackupc_ajax.import_nonce,
+					item_data: JSON.stringify(itemData)
+				},
+				beforeSend: function() {
+					$button.prop('disabled', true).text('Importing...');
+				},
+				success: function(response) {
+					if (response.success) {
+						alert(response.data.message);
+						$button.text('Imported').addClass('button-disabled');
+					} else {
+						alert('Error: ' + response.data);
+						$button.prop('disabled', false).text('Import');
+					}
+				},
+				error: function() {
+					alert('An error occurred. Please try again.');
+					$button.prop('disabled', false).text('Import');
+				}
+			});
+		});
 	});
 
 })(jQuery);

@@ -34,6 +34,7 @@ class StackUpc_Admin {
         add_action( 'admin_init', array($this, 'handle_import' ) );
         add_action( 'wp_ajax_stackupc_search', array($this, 'ajax_upc_search' ) );
         add_action( 'admin_enqueue_scripts', array($this, 'enqueue_admin_scripts' ) );
+        add_action( 'wp_ajax_stackupc_import', array($this, 'ajax_import_item' ) );
     }
 
     /**
@@ -233,11 +234,9 @@ class StackUpc_Admin {
                             ?>
                         </td>
                         <td class="stackupc-import-column">
-                            <form method="post" action="">
-                                <?php wp_nonce_field('stackupc_import_action', 'stackupc_import_nonce'); ?>
-                                <input type="hidden" name="stackupc_import_item" value="<?php echo esc_attr($index); ?>">
-                                <?php submit_button(__('Import', 'stackupc'), 'secondary', 'submit', false); ?>
-                            </form>
+                            <button type="button" class="button button-secondary stackupc-import-button" data-item='<?php echo esc_attr(json_encode($item)); ?>'>
+                                <?php _e('Import', 'stackupc'); ?>
+                            </button>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -285,7 +284,8 @@ class StackUpc_Admin {
         wp_enqueue_script('stackupc-admin-js', plugin_dir_url(dirname(__FILE__)) . 'admin/js/stackupc-admin.js', array('jquery'), $this->version, true);
         wp_localize_script('stackupc-admin-js', 'stackupc_ajax', array(
             'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('stackupc_search_nonce')
+            'nonce' => wp_create_nonce('stackupc_search_nonce'),
+            'import_nonce' => wp_create_nonce('stackupc_import_nonce')
         ));
     }
 
@@ -318,5 +318,93 @@ class StackUpc_Admin {
         ob_start();
         $this->display_upc_result($result);
         return ob_get_clean();
+    }
+
+    public function ajax_import_item() {
+        check_ajax_referer('stackupc_import_nonce', 'nonce');
+
+        if (!isset($_POST['item_data'])) {
+            wp_send_json_error('No item data provided');
+        }
+
+        $item_data = json_decode(stripslashes($_POST['item_data']), true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            wp_send_json_error('Invalid item data');
+        }
+
+        $post_id = wp_insert_post(array(
+            'post_title'   => $item_data['title'],
+            'post_content' => $item_data['description'],
+            'post_type'    => 'asset',
+            'post_status'  => 'publish',
+        ));
+
+        if (is_wp_error($post_id)) {
+            wp_send_json_error('Failed to create asset post');
+        }
+
+        $acf_fields = array(
+            'title'                  => $item_data['title'],
+            'description'            => $item_data['description'],
+            'upc'                    => $item_data['upc'],
+            'ean'                    => $item_data['ean'],
+            'brand'                  => $item_data['brand'],
+            'model'                  => $item_data['model'],
+            'color'                  => $item_data['color'],
+            'size'                   => $item_data['size'],
+            'dimension'              => $item_data['dimension'],
+            'weight'                 => $item_data['weight'],
+            'category'               => $item_data['category'],
+            'currency'               => $item_data['currency'],
+            'lowest_recorded_price'  => $item_data['lowest_recorded_price'],
+            'highest_recorded_price' => $item_data['highest_recorded_price'],
+        );
+
+        foreach ($acf_fields as $field_name => $value) {
+            update_field($field_name, $value, $post_id);
+        }
+
+        // Handle image upload
+        if (!empty($item_data['images'][0])) {
+            $image_url = $item_data['images'][0];
+            $upload = $this->upload_image_from_url($image_url, $post_id);
+            if (!is_wp_error($upload)) {
+                update_field('images', $upload['attachment_id'], $post_id);
+            }
+        }
+
+        wp_send_json_success(array(
+            'message' => 'Asset imported successfully',
+            'post_id' => $post_id,
+        ));
+    }
+
+    private function upload_image_from_url($image_url, $post_id) {
+        require_once(ABSPATH . 'wp-admin/includes/file.php');
+        require_once(ABSPATH . 'wp-admin/includes/media.php');
+        require_once(ABSPATH . 'wp-admin/includes/image.php');
+
+        $tmp = download_url($image_url);
+        if (is_wp_error($tmp)) {
+            return $tmp;
+        }
+
+        $file_array = array(
+            'name'     => basename($image_url),
+            'tmp_name' => $tmp
+        );
+
+        $attachment_id = media_handle_sideload($file_array, $post_id);
+
+        if (is_wp_error($attachment_id)) {
+            @unlink($file_array['tmp_name']);
+            return $attachment_id;
+        }
+
+        return array(
+            'attachment_id' => $attachment_id,
+            'url' => wp_get_attachment_url($attachment_id)
+        );
     }
 }
