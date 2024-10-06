@@ -25,58 +25,98 @@
  * Domain Path:       /languages
  */
 
-// If this file is called directly, abort.
-if ( ! defined( 'WPINC' ) ) {
-	die;
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
 }
 
-/**
- * Currently plugin version.
- * Start at version 1.0.0 and use SemVer - https://semver.org
- * Rename this for your plugin and update it as you release new versions.
- */
+// Define plugin constants
 define( 'STACKUPC_VERSION', '1.0.0' );
+define( 'STACKUPC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
+define( 'STACKUPC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
 /**
- * The code that runs during plugin activation.
- * This action is documented in includes/class-stackupc-activator.php
+ * The main plugin class
  */
-function activate_stackupc() {
-	require_once plugin_dir_path( __FILE__ ) . 'includes/class-stackupc-activator.php';
-	Stackupc_Activator::activate();
+class StackUPC {
+
+	/**
+	 * The single instance of the class.
+	 *
+	 * @var StackUPC
+	 */
+	protected static $_instance = null;
+
+	/**
+	 * Main StackUPC Instance.
+	 *
+	 * Ensures only one instance of StackUPC is loaded or can be loaded.
+	 *
+	 * @return StackUPC - Main instance.
+	 */
+	public static function instance() {
+		if ( is_null( self::$_instance ) ) {
+			self::$_instance = new self();
+		}
+		return self::$_instance;
+	}
+
+	/**
+	 * StackUPC Constructor.
+	 */
+	public function __construct() {
+		$this->includes();
+		$this->init_hooks();
+	}
+
+	/**
+	 * Include required core files.
+	 */
+	public function includes() {
+		require_once STACKUPC_PLUGIN_DIR . 'includes/class-stackupc-admin.php';
+	}
+
+	/**
+	 * Hook into actions and filters.
+	 */
+	private function init_hooks() {
+		// Initialize admin
+		if ( is_admin() ) {
+			new StackUPC_Admin();
+		}
+
+		// Add activation hook
+		register_activation_hook( __FILE__, array( $this, 'activate' ) );
+
+		// Add deactivation hook
+		register_deactivation_hook( __FILE__, array( $this, 'deactivate' ) );
+	}
+
+	/**
+	 * Activation function.
+	 */
+	public function activate() {
+		// Activation code here
+		error_log( 'StackUPC plugin activated' );
+	}
+
+	/**
+	 * Deactivation function.
+	 */
+	public function deactivate() {
+		// Deactivation code here
+		error_log( 'StackUPC plugin deactivated' );
+	}
 }
 
 /**
- * The code that runs during plugin deactivation.
- * This action is documented in includes/class-stackupc-deactivator.php
- */
-function deactivate_stackupc() {
-	require_once plugin_dir_path( __FILE__ ) . 'includes/class-stackupc-deactivator.php';
-	Stackupc_Deactivator::deactivate();
-}
-
-register_activation_hook( __FILE__, 'activate_stackupc' );
-register_deactivation_hook( __FILE__, 'deactivate_stackupc' );
-
-/**
- * The core plugin class that is used to define internationalization,
- * admin-specific hooks, and public-facing site hooks.
- */
-require plugin_dir_path( __FILE__ ) . 'includes/class-stackupc.php';
-
-/**
- * Begins execution of the plugin.
+ * Returns the main instance of StackUPC.
  *
- * Since everything within the plugin is registered via hooks,
- * then kicking off the plugin from this point in the file does
- * not affect the page life cycle.
- *
- * @since    1.0.0
+ * @return StackUPC
  */
-function run_stackupc() {
-
-	$plugin = new Stackupc();
-	$plugin->run();
-
+function StackUPC() {
+	return StackUPC::instance();
 }
-run_stackupc();
+
+// Global for backwards compatibility.
+$GLOBALS['stackupc'] = StackUPC();
