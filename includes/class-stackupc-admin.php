@@ -42,6 +42,35 @@ class StackUpc_Admin {
     }
 
     /**
+     * Enqueue admin-specific styles.
+     *
+     * This method is responsible for enqueuing the CSS styles
+     * specific to the admin area of the StackUPC plugin.
+     * It only enqueues the styles on the plugin's admin page.
+     *
+     * @since 1.0.0
+     * @access public
+     *
+     * @param string $hook The current admin page hook.
+     * @return void
+     */
+    public function enqueue_admin_styles($hook) {
+        // Only enqueue on our plugin's admin page
+        if ($hook != 'toplevel_page_stackupc') {
+            return;
+        }
+        wp_enqueue_style(
+            'stackupc-admin-styles', 
+            plugin_dir_url(dirname(__FILE__)) . 'admin/css/stackupc-admin.css', 
+            array(), 
+            $this->version
+        );
+    }
+
+    // ======================================================================================= //
+    // Start "Search UPC".
+
+    /**
      * Add the admin menu item for StackUPC.
      *
      * @since 1.0.0
@@ -127,19 +156,14 @@ class StackUpc_Admin {
                     <th scope="row"><label for="stackupc_upc_code"><?php _e( 'UPC Code', 'stackupc' ); ?></label></th>
                     <td>
                         <input type="text" id="stackupc_upc_code" name="stackupc_upc_code" value="<?php echo esc_attr( get_option( 'stackupc_upc_code' ) ); ?>" class="regular-text" />
-                        <?php submit_button( __( 'Search', 'stackupc' ), 'secondary', 'submit', false ); ?>
+                        <?php submit_button( __( 'Search', 'stackupc' ), 'secondary', 'stackupc_search_button', false ); ?>
                         <p class="description"><?php _e( 'Enter the UPC code and click Search.', 'stackupc' ); ?></p>
                     </td>
                 </tr>
             </table>
         </form>
+        <div id="stackupc_results_container"></div>
         <?php
-        // Display the result table if it exists
-        $table_html = get_transient('stackupc_result_table');
-        if ($table_html) {
-            echo $table_html;
-            delete_transient('stackupc_result_table');
-        }
     }
 
     /**
@@ -169,17 +193,12 @@ class StackUpc_Admin {
     public function handle_upc_search() {
         if (isset($_POST['stackupc_upc_code']) && isset($_POST['stackupc_search_nonce']) && wp_verify_nonce($_POST['stackupc_search_nonce'], 'stackupc_search_action')) {
             $upc_code = sanitize_text_field($_POST['stackupc_upc_code']);
-            update_option('stackupc_upc_code', $upc_code);
-
             try {
-                $api = new \StackUPC_API(); // Use the fully qualified class name
+                $api = new \StackUPC_API();
                 $result = $api->search_upc($upc_code);
-
                 if (is_wp_error($result)) {
                     throw new \Exception($result->get_error_message());
                 }
-
-                // Process and display the result
                 $this->display_upc_result($result);
                 \StackUPC_Logger::log("UPC search completed for code: $upc_code", 'info');
             } catch (\Exception $e) {
@@ -189,14 +208,23 @@ class StackUpc_Admin {
         }
     }
 
-    private function display_upc_result($result) {
-        $items = isset($result['items']) ? $result['items'] : array();
-        
-        if (empty($items)) {
-            add_settings_error('stackupc_messages', 'stackupc_notice', __('No results found for this UPC code.', 'stackupc'), 'warning');
-            return;
-        }
-
+    /**
+     * Generates HTML for the UPC search results table.
+     *
+     * This method takes the UPC search result data and generates an HTML table
+     * displaying the product information including image, title, brand, UPC,
+     * price, and an import button for each item.
+     *
+     * @since 1.0.0
+     * @access private
+     *
+     * @param array $result An associative array containing the UPC search results.
+     *                      Expected to have a key 'items' which is an array of product items.
+     *                      Each item should have keys: 'images', 'title', 'brand', 'upc', 'offers'.
+     *
+     * @return string The generated HTML for the results table.
+     */
+    private function generate_result_html($result) {
         ob_start();
         ?>
         <div class="stackupc-results-wrap">
@@ -213,7 +241,7 @@ class StackUpc_Admin {
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($items as $index => $item): ?>
+                    <?php foreach ($result['items'] as $item): ?>
                     <tr>
                         <td class="stackupc-thumbnail">
                             <?php
@@ -248,19 +276,14 @@ class StackUpc_Admin {
             </table>
         </div>
         <?php
-        $table_html = ob_get_clean();
-        
-        // Store the table HTML in a transient
-        set_transient('stackupc_result_table', $table_html, 5 * MINUTE_IN_SECONDS);
+        return ob_get_clean();
     }
-    
-    public function enqueue_admin_styles($hook) {
-        // Only enqueue on our plugin's admin page
-        if ($hook != 'toplevel_page_stackupc') {
-            return;
-        }
-        wp_enqueue_style('stackupc-admin-styles', plugin_dir_url(dirname(__FILE__)) . 'admin/css/stackupc-admin.css', array(), $this->version);
-    }
+
+    // End "Search UPC".
+    // ======================================================================================= //
+
+
+
 
     public function handle_import() {
         if (isset($_POST['stackupc_import_item']) && isset($_POST['stackupc_import_nonce']) && wp_verify_nonce($_POST['stackupc_import_nonce'], 'stackupc_import_action')) {
@@ -316,12 +339,6 @@ class StackUpc_Admin {
             StackUPC_Logger::log("UPC search failed: " . $e->getMessage(), 'error');
             wp_send_json_error($e->getMessage());
         }
-    }
-
-    private function generate_result_html($result) {
-        ob_start();
-        $this->display_upc_result($result);
-        return ob_get_clean();
     }
 
     public function ajax_import_item() {

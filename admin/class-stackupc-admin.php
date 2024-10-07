@@ -1,5 +1,4 @@
 <?php
-
 /**
  * The admin-specific functionality of the plugin.
  *
@@ -48,10 +47,8 @@ class Stackupc_Admin {
 	 * @param      string    $version    The version of this plugin.
 	 */
 	public function __construct( $plugin_name, $version ) {
-
 		$this->plugin_name = $plugin_name;
 		$this->version = $version;
-
 	}
 
 	/**
@@ -72,9 +69,13 @@ class Stackupc_Admin {
 		 * between the defined hooks and the functions defined in this
 		 * class.
 		 */
-
-		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/stackupc-admin.css', array(), $this->version, 'all' );
-
+		wp_enqueue_style( 
+			$this->plugin_name, 
+			plugin_dir_url( __FILE__ ) . 'css/stackupc-admin.css', 
+			array(), 
+			$this->version, 
+			'all' 
+		);
 	}
 
 	/**
@@ -95,9 +96,12 @@ class Stackupc_Admin {
 		 * between the defined hooks and the functions defined in this
 		 * class.
 		 */
-
-		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/stackupc-admin.js', array( 'jquery' ), $this->version, false );
-
+		wp_enqueue_script( 
+			$this->plugin_name, 
+			plugin_dir_url( __FILE__ ) . 'js/stackupc-admin.js', 
+			array( 'jquery' ), 
+			$this->version, 
+			false 
+		);
 	}
-
 }
