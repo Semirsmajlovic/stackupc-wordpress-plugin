@@ -1,5 +1,4 @@
 <?php
-
 /**
  * The file that defines the core plugin class
  *
@@ -126,9 +125,21 @@ class Stackupc {
 		 */
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'public/class-stackupc-public.php';
 
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-stackupc-api.php'; // Add this line
+		/**
+		 * Include the API class for handling UPC code lookups.
+		 *
+		 * This class provides methods to interact with the external UPC database API
+		 * to retrieve product information based on UPC codes.
+		 */
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-stackupc-api.php';
 
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'tools/class-stackupc-logger.php'; // Add this line for the logger
+		/**
+		 * Include the Logger class for handling logging functionality.
+		 *
+		 * This class provides methods to log messages and errors to a log file
+		 * within the plugin's directory, aiding in debugging and monitoring.
+		 */
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'tools/class-stackupc-logger.php';
 
 		$this->loader = new Stackupc_Loader();
 
@@ -144,9 +155,7 @@ class Stackupc {
 	 * @access   private
 	 */
 	private function set_locale() {
-
 		$plugin_i18n = new Stackupc_i18n();
-
 		$this->loader->add_action( 'plugins_loaded', $plugin_i18n, 'load_plugin_textdomain' );
 
 	}
@@ -159,9 +168,7 @@ class Stackupc {
 	 * @access   private
 	 */
 	private function define_admin_hooks() {
-
 		$plugin_admin = new Stackupc_Admin( $this->get_plugin_name(), $this->get_version() );
-
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_styles' );
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts' );
 
@@ -175,9 +182,7 @@ class Stackupc {
 	 * @access   private
 	 */
 	private function define_public_hooks() {
-
 		$plugin_public = new Stackupc_Public( $this->get_plugin_name(), $this->get_version() );
-
 		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_styles' );
 		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_scripts' );
 
@@ -222,5 +227,4 @@ class Stackupc {
 	public function get_version() {
 		return $this->version;
 	}
-
 }
