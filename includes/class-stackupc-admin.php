@@ -67,6 +67,42 @@ class StackUpc_Admin {
         );
     }
 
+    /**
+     * Enqueue admin-specific scripts.
+     *
+     * This method is responsible for enqueuing JavaScript files
+     * specific to the admin area of the StackUPC plugin.
+     * It only enqueues the scripts on the plugin's admin page.
+     * Additionally, it localizes the script with necessary AJAX data.
+     *
+     * @since 1.0.0
+     * @access public
+     *
+     * @param string $hook The current admin page hook.
+     * @return void
+     */
+    public function enqueue_admin_scripts($hook) {
+        if ($hook != 'toplevel_page_stackupc') {
+            return;
+        }
+        wp_enqueue_script(
+            'stackupc-admin-js', 
+            plugin_dir_url(dirname(__FILE__)) . 'admin/js/stackupc-admin.js', 
+            array('jquery'), 
+            $this->version, 
+            true
+        );
+        wp_localize_script(
+            'stackupc-admin-js', 
+            'stackupc_ajax', 
+            array(
+                'ajax_url' => admin_url('admin-ajax.php'),
+                'nonce' => wp_create_nonce('stackupc_search_nonce'),
+                'import_nonce' => wp_create_nonce('stackupc_import_nonce')
+            )
+        );
+    }
+
     // ======================================================================================= //
     // Start "Search UPC".
 
@@ -302,18 +338,6 @@ class StackUpc_Admin {
                 add_settings_error('stackupc_messages', 'stackupc_import_error', __('Failed to import item. Please try again.', 'stackupc'), 'error');
             }
         }
-    }
-
-    public function enqueue_admin_scripts($hook) {
-        if ($hook != 'toplevel_page_stackupc') {
-            return;
-        }
-        wp_enqueue_script('stackupc-admin-js', plugin_dir_url(dirname(__FILE__)) . 'admin/js/stackupc-admin.js', array('jquery'), $this->version, true);
-        wp_localize_script('stackupc-admin-js', 'stackupc_ajax', array(
-            'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('stackupc_search_nonce'),
-            'import_nonce' => wp_create_nonce('stackupc_import_nonce')
-        ));
     }
 
     public function ajax_upc_search() {
