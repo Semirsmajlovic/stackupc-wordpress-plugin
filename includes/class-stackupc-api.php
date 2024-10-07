@@ -19,7 +19,14 @@ class StackUPC_API {
      *
      * @var string
      */
-    private $endpoint = 'https://api.upcitemdb.com/prod/trial/lookup';
+    private const ENDPOINT = 'https://api.upcitemdb.com/prod/trial/lookup';
+
+    /**
+     * Request timeout in seconds.
+     *
+     * @var int
+     */
+    private const TIMEOUT = 30;
 
     /**
      * Search for a UPC code.
@@ -29,16 +36,7 @@ class StackUPC_API {
      */
     public function search_upc($upc_code) {
         try {
-            $args = array(
-                'headers' => array(
-                    'Accept' => 'application/json',
-                    'Accept-Encoding' => 'gzip,deflate'
-                ),
-                'timeout' => 30
-            );
-
-            $url = add_query_arg('upc', $upc_code, $this->endpoint);
-            $response = wp_remote_get($url, $args);
+            $response = $this->make_request($upc_code);
 
             if (is_wp_error($response)) {
                 throw new Exception($response->get_error_message());
@@ -49,17 +47,50 @@ class StackUPC_API {
                 throw new Exception("API request failed with status code: $http_code");
             }
 
-            $body = wp_remote_retrieve_body($response);
-            $data = json_decode($body, true);
+            $data = $this->parse_response($response);
 
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new Exception("Failed to parse API response: " . json_last_error_msg());
-            }
-
+            StackUPC_Logger::log("UPC search successful for code: $upc_code", 'info');
             return $data;
         } catch (Exception $e) {
             StackUPC_Logger::log("API Error: " . $e->getMessage(), 'error');
             return new WP_Error('api_error', $e->getMessage());
         }
+    }
+
+    /**
+     * Make the API request.
+     *
+     * @param string $upc_code The UPC code to search for.
+     * @return array|WP_Error The API response or WP_Error on failure.
+     */
+    private function make_request($upc_code) {
+        $args = array(
+            'headers' => array(
+                'Accept' => 'application/json',
+                'Accept-Encoding' => 'gzip,deflate'
+            ),
+            'timeout' => self::TIMEOUT
+        );
+
+        $url = add_query_arg('upc', $upc_code, self::ENDPOINT);
+        return wp_remote_get($url, $args);
+    }
+
+    /**
+     * Parse the API response.
+     *
+     * @param array $response The API response.
+     * @return array The parsed data.
+     * @throws Exception If the response cannot be parsed.
+     */
+    private function parse_response($response) {
+        $body = wp_remote_retrieve_body($response);
+        $data = json_decode($body, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new Exception("Failed to parse API response: " . json_last_error_msg());
+        }
+
+        return $data;
     }
 }
